@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MR FRIES | Real-Time Reviews</title>
+    <style>
+        :root {
+            --gold: #FFD700;
+            --white: #ffffff;
+            --grey-light: #e0e0e0;
+            --grey-dark: #333;
+            --bg-overlay: rgba(0, 0, 0, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #121212; /* Clean dark background */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: var(--bg-overlay);
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid #222;
+        }
+
+        h1 { font-size: 2rem; margin: 0; color: var(--gold); text-align: center; text-transform: uppercase; }
+        .tagline { text-align: center; margin-bottom: 30px; color: #888; font-size: 0.9rem; }
+
+        /* Review Summary UI */
+        .review-summary {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .rating-left { text-align: center; min-width: 90px; }
+        .rating-number { font-size: 3rem; font-weight: 800; line-height: 1; color: var(--gold); }
+        .stars-static { color: var(--gold); font-size: 1rem; margin: 5px 0; }
+        .review-count { font-size: 0.8rem; color: #666; }
+
+        .rating-bars { flex-grow: 1; }
+        .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .bar-bg { height: 6px; background: #333; border-radius: 3px; flex-grow: 1; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--gold); transition: width 0.4s ease; }
+        .bar-label { font-size: 0.7rem; color: #666; width: 8px; }
+
+        /* Form Elements */
+        .pill-tag {
+            display: inline-block;
+            background: #222;
+            color: #aaa;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            margin-bottom: 15px;
+        }
+
+        select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: #000;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .stars-input {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .stars-input input { display: none; }
+        .stars-input label { color: #222; cursor: pointer; transition: 0.2s; padding: 0 5px; }
+        .stars-input label:hover, .stars-input label:hover ~ label, .stars-input input:checked ~ label { color: var(--gold); }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="text-align: center;"><span class="pill-tag" id="category-tag">Website Exclusive</span></div>
+    <h1>MR FRIES</h1>
+    <p class="tagline">Authentic Flavors, Real Reviews.</p>
+
+    <div class="review-summary">
+        <div class="rating-left">
+            <span class="rating-number" id="avg-rating">0.0</span>
+            <div class="stars-static">★★★★★</div>
+            <div class="review-count" id="total-count">(0 reviews)</div>
+        </div>
+        <div class="rating-bars" id="bar-container">
+            </div>
+    </div>
+
+    <label style="display:block; margin-bottom:8px; font-size:0.8rem; color:#666;">Select Product:</label>
+    <select id="product-select">
+        <option value="Fries">Fries 🍟</option>
+        <option value="Malai Botti Samosa">Malai Botti Samosa 🥟</option>
+        <option value="Chicken Samosa">Chicken Samosa 🥟</option>
+        <option value="Allu Samosa">Allu Samosa 🥟</option>
+        <option value="Vegetable Samosa">Vegetable Samosa 🥟</option>
+        <option value="Chicken Cheese Ball">Chicken Cheese Ball 🧀</option>
+        <option value="Shami Roll">Shami Roll 🌯</option>
+    </select>
+
+    <div class="stars-input">
+        <input type="radio" name="rate" id="s5" value="5"><label for="s5">★</label>
+        <input type="radio" name="rate" id="s4" value="4"><label for="s4">★</label>
+        <input type="radio" name="rate" id="s3" value="3"><label for="s3">★</label>
+        <input type="radio" name="rate" id="s2" value="2"><label for="s2">★</label>
+        <input type="radio" name="rate" id="s1" value="1"><label for="s1">★</label>
+    </div>
+
+    <button class="submit-btn" onclick="submitRating()">Submit Review</button>
+</div>
+
+<script>
+    // Initial Data Store for every product
+    const productData = {
+        "Fries": { 5: 10, 4: 2, 3: 1, 2: 0, 1: 0 },
+        "Malai Botti Samosa": { 5: 15, 4: 1, 3: 0, 2: 0, 1: 0 },
+        "Chicken Samosa": { 5: 8, 4: 3, 3: 1, 2: 0, 1: 0 },
+        "Allu Samosa": { 5: 5, 4: 5, 3: 2, 2: 1, 1: 0 },
+        "Vegetable Samosa": { 5: 4, 4: 2, 3: 1, 2: 0, 1: 0 },
+        "Chicken Cheese Ball": { 5: 20, 4: 0, 3: 0, 2: 0, 1: 0 },
+        "Shami Roll": { 5: 12, 4: 2, 3: 0, 2: 0, 1: 0 }
+    };
+
+    const select = document.getElementById('product-select');
+    const avgDisplay = document.getElementById('avg-rating');
+    const countDisplay = document.getElementById('total-count');
+    const barContainer = document.getElementById('bar-container');
+
+    function updateUI() {
+        const product = select.value;
+        const ratings = productData[product];
+        
+        let totalReviews = 0;
+        let totalScore = 0;
+        
+        // Calculate totals
+        for (let i = 1; i <= 5; i++) {
+            totalReviews += ratings[i];
+            totalScore += (ratings[i] * i);
+        }
+
+        const average = totalReviews > 0 ? (totalScore / totalReviews).toFixed(1) : "0.0";
+        
+        // Update text
+        avgDisplay.innerText = average;
+        countDisplay.innerText = `(${totalReviews} reviews)`;
+
+        // Update Bars
+        barContainer.innerHTML = '';
+        for (let i = 5; i >= 1; i--) {
+            const percentage = totalReviews > 0 ? (ratings[i] / totalReviews) * 100 : 0;
+            barContainer.innerHTML += `
+                <div class="bar-row">
+                    <span class="bar-label">${i}</span>
+                    <div class="bar-bg">
+                        <div class="bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function submitRating() {
+        const checked = document.querySelector('input[name="rate"]:checked');
+        const product = select.value;
+
+        if (checked) {
+            const val = parseInt(checked.value);
+            productData[product][val]++; // Add review to data
+            updateUI(); // Refresh UI
+            
+            alert(`Thanks! Your ${val}-star review for ${product} has been recorded.`);
+            checked.checked = false;
+        } else {
+            alert("Please select a star rating!");
+        }
+    }
+
+    // Initial Load
+    select.addEventListener('change', updateUI);
+    updateUI();
+</script>
+
+</body>
+</html>

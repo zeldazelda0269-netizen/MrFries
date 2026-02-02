@@ -105,9 +105,61 @@
             font-weight: 700;
             cursor: pointer;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #1a1a1a;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 300px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        .modal-content h2 {
+            color: var(--gold);
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        .modal-content p {
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .modal-close:hover {
+            background: #e6c200;
+        }
     </style>
 </head>
 <body>
+
+<canvas id="fireworks" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; display: none;"></canvas>
 
 <div class="container">
     <div style="text-align: center;"><span class="pill-tag" id="category-tag">Website Exclusive</span></div>
@@ -146,6 +198,15 @@
     <button class="submit-btn" onclick="submitRating()">Submit Review</button>
 </div>
 
+<!-- Modal -->
+<div id="customModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle">Success!</h2>
+        <p id="modalMessage"></p>
+        <button class="modal-close" onclick="closeModal()">OK</button>
+    </div>
+</div>
+
 <script>
     // Load data from localStorage or use initial data
     let productData = JSON.parse(localStorage.getItem('productData')) || {
@@ -162,6 +223,85 @@
     const avgDisplay = document.getElementById('avg-rating');
     const countDisplay = document.getElementById('total-count');
     const barContainer = document.getElementById('bar-container');
+    const modal = document.getElementById('customModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+
+    // Fireworks setup
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let particles = [];
+
+    class Particle {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            this.radius = Math.random() * 2 + 1;
+            this.vx = Math.random() * 10 - 5;
+            this.vy = Math.random() * 10 - 5;
+            this.gravity = 0.1;
+            this.life = 100;
+        }
+
+        update() {
+            this.vy += this.gravity;
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life--;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+
+    function createBurst(x, y, count) {
+        for (let i = 0; i < count; i++) {
+            particles.push(new Particle(x, y));
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            particles[i].draw();
+            if (particles[i].life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+    animate();
+
+    function launchFireworks() {
+        canvas.style.display = 'block';
+        let bursts = 3;
+        let interval = setInterval(() => {
+            let x = Math.random() * canvas.width;
+            let y = Math.random() * (canvas.height / 2);
+            createBurst(x, y, 50);
+            bursts--;
+            if (bursts <= 0) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    canvas.style.display = 'none';
+                }, 2000); // Hide after 2 seconds
+            }
+        }, 500);
+    }
 
     function updateUI() {
         const product = select.value;
@@ -197,6 +337,16 @@
         }
     }
 
+    function showModal(title, message) {
+        modalTitle.innerText = title;
+        modalMessage.innerText = message;
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
     function submitRating() {
         const checked = document.querySelector('input[name="rate"]:checked');
         const product = select.value;
@@ -207,10 +357,18 @@
             localStorage.setItem('productData', JSON.stringify(productData)); // Save to localStorage
             updateUI(); // Refresh UI
             
-            alert(`Thanks! Your ${val}-star review for ${product} has been recorded.`);
+            showModal('Success!', `Thanks! Your ${val}-star review for ${product} has been recorded.`);
+            launchFireworks(); // Trigger fireworks on success
             checked.checked = false;
         } else {
-            alert("Please select a star rating!");
+            showModal('Error', 'Please select a star rating!');
+        }
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeModal();
         }
     }
 
